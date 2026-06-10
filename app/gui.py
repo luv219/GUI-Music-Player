@@ -201,21 +201,18 @@ class PyTuneBoxApp:
 
     def _build_layout(self):
         """Build the full layout with all sections."""
-        self.main_frame = ttk.Frame(self.root, padding=15)
+        self.main_frame = ttk.Frame(self.root, padding=10)
         self.main_frame.grid(row=0, column=0, sticky="nsew")
-        
-        # Configure columns so both Left & Right columns expand
-        self.main_frame.columnconfigure(0, weight=1, minsize=400)
-        self.main_frame.columnconfigure(1, weight=1, minsize=400)
+
+        self.main_frame.columnconfigure(0, weight=3, minsize=520)
+        self.main_frame.columnconfigure(1, weight=2, minsize=360)
         self.main_frame.rowconfigure(0, weight=1)
         self.main_frame.rowconfigure(1, weight=0)
 
-        # Left column frame (Header, Now Playing, Visualizer, Controls)
         self.left_frame = ttk.Frame(self.main_frame)
-        self.left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 15))
+        self.left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         self.left_frame.columnconfigure(0, weight=1)
 
-        # Right column frame (Tabs)
         self.right_frame = ttk.Frame(self.main_frame)
         self.right_frame.grid(row=0, column=1, sticky="nsew")
         self.right_frame.columnconfigure(0, weight=1)
@@ -252,6 +249,9 @@ class PyTuneBoxApp:
 
         # Build status bar spanning the bottom
         self._build_status_bar(self.main_frame)
+
+        if hasattr(self, "visualizer"):
+            self.visualizer.show_idle_preview()
 
     def _build_header(self, parent):
         """Build the header section with title and version."""
@@ -378,7 +378,12 @@ class PyTuneBoxApp:
         list_frame.columnconfigure(0, weight=1)
         list_frame.rowconfigure(0, weight=1)
 
-        self.playlist_listbox = tk.Listbox(list_frame, height=8)
+        self.playlist_listbox = tk.Listbox(
+            list_frame,
+            height=16,
+            highlightthickness=1,
+            bd=0,
+        )
         self.playlist_listbox.grid(row=0, column=0, sticky="nsew")
         self.playlist_listbox.bind("<Double-Button-1>", self.on_playlist_double_click)
 
@@ -492,8 +497,8 @@ class PyTuneBoxApp:
 
         self.visualizer = AudioVisualizer(
             self.visualizer_frame,
-            width=350,
-            height=90,
+            width=480,
+            height=100,
             bar_count=32,
         )
         self.visualizer.get_widget().grid(row=0, column=0, sticky="ew")
@@ -830,6 +835,7 @@ class PyTuneBoxApp:
     def apply_theme(self):
         """Apply the current theme to the GUI."""
         theme = self.current_theme
+        border_color = theme.get("border_color", theme["fg"])
 
         self.safe_configure(self.root, bg=theme["bg"])
 
@@ -848,22 +854,61 @@ class PyTuneBoxApp:
             "TButton",
             background=theme["button_bg"],
             foreground=theme["button_fg"],
+            borderwidth=1,
+            relief="solid",
+            padding=(10, 4),
+        )
+        self.ttk_style.map(
+            "TButton",
+            background=[("active", theme.get("tab_selected_bg", theme["button_bg"]))],
         )
         self.ttk_style.configure(
             "TLabelframe",
             background=theme["frame_bg"],
             foreground=theme["fg"],
+            borderwidth=1,
+            relief="solid",
+            bordercolor=border_color,
         )
         self.ttk_style.configure(
             "TLabelframe.Label",
             background=theme["frame_bg"],
             foreground=theme["fg"],
         )
+        self.ttk_style.configure(
+            "TEntry",
+            fieldbackground=theme["entry_bg"],
+            foreground=theme["entry_fg"],
+            bordercolor=border_color,
+            lightcolor=border_color,
+            darkcolor=border_color,
+        )
+        self.ttk_style.configure(
+            "TNotebook",
+            background=theme["frame_bg"],
+            borderwidth=1,
+            tabmargins=(2, 2, 0, 0),
+        )
+        self.ttk_style.configure(
+            "TNotebook.Tab",
+            background=theme.get("tab_bg", theme["button_bg"]),
+            foreground=theme["label_fg"],
+            padding=(14, 6),
+            borderwidth=1,
+        )
+        self.ttk_style.map(
+            "TNotebook.Tab",
+            background=[
+                ("selected", theme.get("tab_selected_bg", theme["entry_bg"])),
+                ("active", theme.get("tab_selected_bg", theme["entry_bg"])),
+            ],
+            foreground=[("selected", theme["label_fg"])],
+        )
         self.ttk_style.configure("Horizontal.TScale", background=theme["frame_bg"])
         self.ttk_style.configure(
             "Horizontal.TProgressbar",
             background=theme["button_bg"],
-            troughcolor=theme["entry_bg"],
+            troughcolor=theme.get("tab_bg", theme["entry_bg"]),
         )
         self.ttk_style.configure(
             "Status.TLabel",
@@ -877,8 +922,8 @@ class PyTuneBoxApp:
             fg=theme["listbox_fg"],
             selectbackground=theme["select_bg"],
             selectforeground=theme["select_fg"],
-            highlightbackground=theme["frame_bg"],
-            highlightcolor=theme["select_bg"],
+            highlightbackground=border_color,
+            highlightcolor=border_color,
         )
 
         if self.status_label:

@@ -38,6 +38,15 @@ class AudioVisualizer:
 
         self.canvas.bind("<Configure>", self.on_resize)
         self.create_bars()
+        self.show_idle_preview()
+
+    def show_idle_preview(self):
+        """Display varied bar heights for the idle visualizer state."""
+        self.current_levels = [
+            random.uniform(0.2, 0.95) for _ in range(self.bar_count)
+        ]
+        self.target_levels = self.current_levels.copy()
+        self.update_bars()
 
     def get_widget(self):
         """Return the canvas widget for layout."""
@@ -94,12 +103,9 @@ class AudioVisualizer:
             self.animation_job = None
 
     def stop(self):
-        """Stop the visualizer and reset bars to low height."""
+        """Stop the visualizer and return to the idle preview state."""
         self.pause()
-
-        self.current_levels = [0.05 for _ in range(self.bar_count)]
-        self.target_levels = [0.05 for _ in range(self.bar_count)]
-        self.update_bars()
+        self.show_idle_preview()
 
     def animate(self):
         """Animate bars with smooth level changes."""
