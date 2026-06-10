@@ -32,7 +32,8 @@ class StreamPlayer:
         if vlc is not None:
             try:
                 # --no-video ensures VLC doesn't open an external video window for audio streams
-                self.instance = vlc.Instance("--no-video")
+                # --no-interact and --quiet prevent VLC from spawning OS-level error dialogs
+                self.instance = vlc.Instance("--no-video", "--no-interact", "--quiet")
                 self.player = self.instance.media_player_new()
                 self.is_available = True
                 self.player.audio_set_volume(self.volume)

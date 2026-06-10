@@ -203,15 +203,54 @@ class PyTuneBoxApp:
         """Build the full layout with all sections."""
         self.main_frame = ttk.Frame(self.root, padding=15)
         self.main_frame.grid(row=0, column=0, sticky="nsew")
-        self.main_frame.columnconfigure(0, weight=1)
-        self.main_frame.rowconfigure(2, weight=1)  # Playlist section expands
+        
+        # Configure columns so both Left & Right columns expand
+        self.main_frame.columnconfigure(0, weight=1, minsize=400)
+        self.main_frame.columnconfigure(1, weight=1, minsize=400)
+        self.main_frame.rowconfigure(0, weight=1)
+        self.main_frame.rowconfigure(1, weight=0)
 
-        self._build_header(self.main_frame)
-        self._build_now_playing(self.main_frame)
-        self._build_playlist(self.main_frame)
-        self._build_controls(self.main_frame)
-        self._build_youtube_stream(self.main_frame)
-        self._build_visualizer(self.main_frame)
+        # Left column frame (Header, Now Playing, Visualizer, Controls)
+        self.left_frame = ttk.Frame(self.main_frame)
+        self.left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 15))
+        self.left_frame.columnconfigure(0, weight=1)
+
+        # Right column frame (Tabs)
+        self.right_frame = ttk.Frame(self.main_frame)
+        self.right_frame.grid(row=0, column=1, sticky="nsew")
+        self.right_frame.columnconfigure(0, weight=1)
+        self.right_frame.rowconfigure(0, weight=1)
+
+        # Notebook for Tabs
+        self.notebook = ttk.Notebook(self.right_frame)
+        self.notebook.grid(row=0, column=0, sticky="nsew")
+
+        # Tab 1: Local Playlist
+        self.tab_local = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab_local, text="Local Playlist")
+        self.tab_local.columnconfigure(0, weight=1)
+        self.tab_local.rowconfigure(0, weight=1)
+
+        # Tab 2: YouTube
+        self.tab_youtube = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab_youtube, text="YouTube Search")
+        self.tab_youtube.columnconfigure(0, weight=1)
+        self.tab_youtube.rowconfigure(0, weight=0)
+
+        # Build elements in Left Frame
+        self._build_header(self.left_frame)
+        self._build_now_playing(self.left_frame)
+        self._build_visualizer(self.left_frame)
+        self._build_controls(self.left_frame)
+
+        # Build elements in Tabs
+        self._build_playlist(self.tab_local)
+        self._build_youtube_stream(self.tab_youtube)
+
+        # Set default tab to Local Playlist
+        self.notebook.select(self.tab_local)
+
+        # Build status bar spanning the bottom
         self._build_status_bar(self.main_frame)
 
     def _build_header(self, parent):
@@ -299,7 +338,7 @@ class PyTuneBoxApp:
     def _build_playlist(self, parent):
         """Build the Playlist section with search, listbox, and management buttons."""
         playlist_frame = ttk.LabelFrame(parent, text="Playlist", padding=10)
-        playlist_frame.grid(row=2, column=0, sticky="nsew", pady=(0, 10))
+        playlist_frame.grid(row=0, column=0, sticky="nsew")
         playlist_frame.columnconfigure(0, weight=1)
         playlist_frame.rowconfigure(2, weight=1)
 
@@ -410,7 +449,7 @@ class PyTuneBoxApp:
     def _build_youtube_stream(self, parent):
         """Build the YouTube stream search/playback section."""
         yt_frame = ttk.LabelFrame(parent, text="YouTube Stream", padding=10)
-        yt_frame.grid(row=4, column=0, sticky="ew", pady=(0, 10))
+        yt_frame.grid(row=0, column=0, sticky="nsew", pady=10, padx=10)
         yt_frame.columnconfigure(1, weight=1)
 
         ttk.Label(yt_frame, text="Search or URL:").grid(row=0, column=0, sticky="w", padx=(0, 8))
@@ -448,12 +487,12 @@ class PyTuneBoxApp:
     def _build_visualizer(self, parent):
         """Build the visualizer section."""
         self.visualizer_frame = ttk.LabelFrame(parent, text="Visualizer", padding=10)
-        self.visualizer_frame.grid(row=5, column=0, sticky="ew", pady=(0, 10))
+        self.visualizer_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
         self.visualizer_frame.columnconfigure(0, weight=1)
 
         self.visualizer = AudioVisualizer(
             self.visualizer_frame,
-            width=500,
+            width=350,
             height=90,
             bar_count=32,
         )
@@ -462,7 +501,7 @@ class PyTuneBoxApp:
     def _build_status_bar(self, parent):
         """Build the status bar at the bottom."""
         status_frame = ttk.Frame(parent)
-        status_frame.grid(row=6, column=0, sticky="ew")
+        status_frame.grid(row=1, column=0, columnspan=2, sticky="ew")
 
         separator = ttk.Separator(status_frame, orient="horizontal")
         separator.pack(fill="x", pady=(0, 6))
