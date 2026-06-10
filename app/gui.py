@@ -1618,6 +1618,8 @@ class PyTuneBoxApp:
 
     def _shortcut_play_pause(self, event):
         """Keyboard shortcut for play/pause."""
+        if self.is_text_input_focused(event):
+            return
         self.on_play_pause()
         return "break"
 
