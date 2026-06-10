@@ -1,0 +1,10 @@
+PyTune Box - App Icon Placeholder
+
+No app.ico file is included yet.
+
+To add a custom icon:
+1. Place your icon file at: assets/icons/app.ico
+2. Re-run: build_scripts\build_windows_exe.bat
+
+The build script will automatically use app.ico when it exists.
+If app.ico is missing, PyInstaller builds without a custom icon.

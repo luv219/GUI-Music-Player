@@ -1,0 +1,7 @@
+PyTune Box
+Version: 0.1.0-beta
+Release Stage: Beta
+Platform: Windows
+Python GUI: Tkinter
+Audio Backend: pygame mixer
+Metadata Backend: mutagen
