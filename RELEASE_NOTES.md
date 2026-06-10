@@ -45,6 +45,19 @@ PyInstaller folder-based executable build ready.
 - Packaging guide
 - Version file
 
+## MusicBrainz Integration
+- Added MusicBrainz metadata lookup using musicbrainzngs 0.7.1.
+- Added user-triggered metadata search.
+- Added candidate result selection dialog.
+- Added MusicBrainz metadata application to playlist items.
+- Added MusicBrainz metadata persistence in playlist JSON.
+- Added offline fallback to local metadata.
+
+Known limitation:
+- No fingerprinting yet.
+- Search depends on title/artist/album text.
+- Original audio files are not modified.
+
 ## Known Limitations
 
 - Seeking may vary by audio format and pygame backend.
@@ -57,6 +70,9 @@ PyInstaller folder-based executable build ready.
 - One-file EXE is not enabled yet.
 - No album art yet.
 - No lyrics support yet.
+- No AcoustID fingerprint lookup.
+- No automatic bulk MusicBrainz lookup.
+- No writing metadata back to audio files.
 
 ## Next Possible Improvements
 

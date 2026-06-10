@@ -23,6 +23,14 @@ Release date: To be finalized
 - Release notes
 - PyInstaller packaging scripts
 - Documentation
+- MusicBrainz metadata lookup using musicbrainzngs 0.7.1.
+- MusicBrainz result selection dialog.
+- MusicBrainz metadata fields in playlist items.
+- MusicBrainz metadata persistence in playlist JSON.
+- MusicBrainz integration documentation.
+
+### Changed
+- Playlist display can mark MusicBrainz-enriched tracks with [MB].
 
 ### Known Limitations
 - Simulated visualizer
@@ -31,3 +39,6 @@ Release date: To be finalized
 - No code signing
 - No album art
 - No lyrics
+- No AcoustID fingerprint lookup.
+- No automatic bulk lookup.
+- No writing metadata back to audio files.

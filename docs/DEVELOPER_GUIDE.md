@@ -23,8 +23,16 @@ PyTune Box is designed with a layered architecture to keep components separated:
 | `app/themes.py` | Light and dark theme dictionaries |
 | `app/visualizer.py` | Animated canvas visualizer logic |
 | `app/config.py` | Application constants and configuration |
+| `app/musicbrainz_service.py` | MusicBrainz API integration service |
 | `data/settings.json` | Saved user settings and state |
 | `build_scripts/` | PyInstaller build and packaging scripts |
+
+## MusicBrainz Service
+- `app/musicbrainz_service.py` handles API setup and search.
+- GUI calls it from a background thread to prevent freezing.
+- Tkinter updates are routed through `root.after()`.
+- `PlaylistManager` stores the enriched metadata.
+- Tests in `test_musicbrainz_service.py` avoid real network calls.
 
 ## Setup Development Environment
 

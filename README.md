@@ -22,6 +22,10 @@ The application is built entirely using Python, utilizing Tkinter for the GUI, p
 - Remove selected songs
 - Clear playlist
 - Save/load playlists using JSON
+- MusicBrainz metadata lookup
+- User-selected MusicBrainz result application
+- MusicBrainz metadata saved in playlist JSON
+- Offline fallback to local metadata
 - Metadata display
 - Duration display
 - Real-time progress tracking
@@ -57,6 +61,7 @@ Demo GIF/video will be stored in `assets/demo/`.
 | Tkinter | Desktop GUI framework |
 | pygame | Audio playback backend |
 | mutagen | Audio metadata extraction |
+| musicbrainzngs 0.7.1 | MusicBrainz API integration |
 | JSON | Settings and playlist storage |
 | PyInstaller | Windows executable packaging |
 | pytest | Automated testing |
@@ -134,6 +139,16 @@ build_scripts\build_release_zip.bat
 - `.mp3`
 - `.wav`
 - `.ogg`
+
+## MusicBrainz Metadata Lookup
+PyTune Box can search MusicBrainz for improved song metadata. Select a song, then use **Tools > Lookup Metadata on MusicBrainz** or the **Lookup MusicBrainz** button. The app shows possible matches and lets you apply the selected result to the playlist item.
+
+- The app does not modify original audio files.
+- MusicBrainz metadata is saved when saving playlist JSON.
+- Internet connection is required.
+- Local metadata still works offline.
+
+See [docs/MUSICBRAINZ_INTEGRATION.md](docs/MUSICBRAINZ_INTEGRATION.md).
 
 ## Current Status
 **Version:** 0.1.0-beta

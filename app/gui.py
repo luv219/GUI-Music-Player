@@ -41,6 +41,10 @@ from app.playlist import PlaylistManager
 from app.themes import get_next_theme_name, get_theme
 from app.visualizer import AudioVisualizer
 
+import threading
+from app.musicbrainz_service import MusicBrainzService
+from app.config import MUSICBRAINZ_ENABLED, ERROR_MUSICBRAINZ_NO_RESULTS, ERROR_MUSICBRAINZ_NETWORK
+
 
 class PyTuneBoxApp:
     """Main application window for PyTune Box."""
@@ -78,6 +82,12 @@ class PyTuneBoxApp:
         self.current_song_duration = 0
         self.handling_song_finish = False
         self._startup_status = "Phase 10: Testing and polish ready"
+
+        if MUSICBRAINZ_ENABLED:
+            self.musicbrainz_service = MusicBrainzService()
+        else:
+            self.musicbrainz_service = None
+        self.musicbrainz_lookup_in_progress = False
 
         try:
             self.audio_player = AudioPlayer(volume=saved_volume / 100)
@@ -154,6 +164,12 @@ class PyTuneBoxApp:
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Help", menu=help_menu)
         help_menu.add_command(label="About", command=self.show_about)
+
+        # Tools menu
+        tools_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Tools", menu=tools_menu)
+        tools_menu.add_command(label="Lookup Metadata on MusicBrainz", command=self.lookup_musicbrainz_for_selected_song)
+        tools_menu.add_command(label="Manual MusicBrainz Search", command=self.manual_musicbrainz_search)
 
     def _build_layout(self):
         """Build the full layout with all sections."""
@@ -282,6 +298,11 @@ class PyTuneBoxApp:
             button_row, text="Clear Playlist", command=self.clear_playlist
         )
         self.clear_playlist_button.pack(side="left")
+
+        self.musicbrainz_button = ttk.Button(
+            button_row, text="Lookup MusicBrainz", command=self.lookup_musicbrainz_for_selected_song
+        )
+        self.musicbrainz_button.pack(side="right")
 
         # Listbox with scrollbar
         list_frame = ttk.Frame(playlist_frame)
@@ -1628,3 +1649,174 @@ class PyTuneBoxApp:
     def run(self):
         """Start the Tkinter main event loop."""
         self.root.mainloop()
+
+    # -------------------------------------------------------------------------
+    # MusicBrainz lookup helpers
+    # -------------------------------------------------------------------------
+
+    def get_selected_playlist_index(self):
+        """Return the selected index from the playlist listbox, or current_index if playing, or None."""
+        if self.playlist_manager.is_empty():
+            return None
+        selection = self.playlist_listbox.curselection()
+        if selection and selection[0] < self.playlist_manager.count():
+            return selection[0]
+        if self.current_index is not None and self.current_index < self.playlist_manager.count():
+            return self.current_index
+        return None
+
+    def lookup_musicbrainz_for_selected_song(self):
+        if not MUSICBRAINZ_ENABLED or not self.musicbrainz_service:
+            self.show_warning("Disabled", "MusicBrainz integration is disabled.")
+            return
+        if self.musicbrainz_lookup_in_progress:
+            self.show_warning("In Progress", "MusicBrainz lookup is already in progress.")
+            return
+
+        index = self.get_selected_playlist_index()
+        if index is None:
+            self.show_warning("No Selection", "Please select a song first.")
+            return
+
+        try:
+            song = self.playlist_manager.get_song(index)
+        except IndexError:
+            return
+
+        self.update_status("Searching MusicBrainz...")
+        if hasattr(self, "musicbrainz_button"):
+            self.safe_configure(self.musicbrainz_button, state="disabled")
+            
+        threading.Thread(target=self._musicbrainz_lookup_worker, args=(index, song), daemon=True).start()
+
+    def _musicbrainz_lookup_worker(self, index, song):
+        self.musicbrainz_lookup_in_progress = True
+        try:
+            results = self.musicbrainz_service.search_for_song(song)
+            self.root.after(0, self._musicbrainz_lookup_finished, index, results)
+        except Exception as e:
+            self.root.after(0, self._musicbrainz_lookup_failed, str(e))
+        finally:
+            self.root.after(0, self._reset_musicbrainz_lookup_state)
+
+    def _reset_musicbrainz_lookup_state(self):
+        self.musicbrainz_lookup_in_progress = False
+        if hasattr(self, "musicbrainz_button"):
+            self.safe_configure(self.musicbrainz_button, state="normal")
+
+    def _musicbrainz_lookup_failed(self, error_message):
+        self._reset_musicbrainz_lookup_state()
+        self.show_error("MusicBrainz Lookup Failed", f"Could not fetch metadata from MusicBrainz.\n\nDetails: {error_message}")
+        self.update_status("MusicBrainz lookup failed")
+
+    def _musicbrainz_lookup_finished(self, index, results):
+        self._reset_musicbrainz_lookup_state()
+        if not results:
+            self.show_warning("No Results", ERROR_MUSICBRAINZ_NO_RESULTS)
+            self.update_status("No MusicBrainz matches found")
+            return
+            
+        self.show_musicbrainz_results_dialog(index, results)
+
+    def show_musicbrainz_results_dialog(self, index, results):
+        dialog = tk.Toplevel(self.root)
+        dialog.title("MusicBrainz Results")
+        dialog.geometry("700x400")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        lbl = ttk.Label(dialog, text="Select the best metadata match:")
+        lbl.pack(pady=10, padx=10, anchor="w")
+
+        list_frame = ttk.Frame(dialog)
+        list_frame.pack(fill="both", expand=True, padx=10, pady=5)
+        
+        listbox = tk.Listbox(list_frame, font=("Segoe UI", 10))
+        listbox.pack(side="left", fill="both", expand=True)
+        
+        scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=listbox.yview)
+        scrollbar.pack(side="right", fill="y")
+        listbox.config(yscrollcommand=scrollbar.set)
+        
+        for r in results:
+            display = f"{r['title']} - {r['artist']} | {r['album']} | {r['duration_text']} | {r['release_date']} | Score: {r['score']}"
+            listbox.insert(tk.END, display)
+            
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(fill="x", padx=10, pady=10)
+        
+        def apply_selected(event=None):
+            selection = listbox.curselection()
+            if not selection:
+                messagebox.showwarning("No Selection", "Please select a MusicBrainz result.", parent=dialog)
+                return
+            
+            selected_result = results[selection[0]]
+            
+            try:
+                self.playlist_manager.apply_musicbrainz_metadata(index, selected_result)
+                self.refresh_playlist_display()
+                
+                if index < self.playlist_manager.count():
+                    self.playlist_listbox.selection_clear(0, tk.END)
+                    self.playlist_listbox.selection_set(index)
+                    self.playlist_listbox.see(index)
+                
+                if index == self.current_index:
+                    song = self.playlist_manager.get_song(index)
+                    if hasattr(self, "song_title_label") and self.song_title_label:
+                        self.song_title_label.config(text=song["title"])
+                    if hasattr(self, "artist_label") and self.artist_label:
+                        self.artist_label.config(text=f"Artist: {song['artist']}")
+                    if hasattr(self, "album_label") and self.album_label:
+                        self.album_label.config(text=f"Album: {song['album']}")
+                    if hasattr(self, "duration_label") and self.duration_label:
+                        elapsed = self.audio_player.get_elapsed_seconds()
+                        elapsed_text = self.format_duration(elapsed)
+                        self.duration_label.config(text=f"Duration: {elapsed_text} / {song['duration_text']}")
+                        self.current_song_duration = song.get("duration_seconds", 0)
+                        
+                self.update_status(f"Applied MusicBrainz metadata: {selected_result['title']} - {selected_result['artist']}")
+                dialog.destroy()
+            except Exception as exc:
+                messagebox.showerror("Error", f"Failed to apply metadata: {exc}", parent=dialog)
+
+        apply_btn = ttk.Button(btn_frame, text="Apply Selected", command=apply_selected)
+        apply_btn.pack(side="left", padx=5)
+        
+        cancel_btn = ttk.Button(btn_frame, text="Cancel", command=dialog.destroy)
+        cancel_btn.pack(side="right", padx=5)
+        
+        listbox.bind("<Double-Button-1>", apply_selected)
+
+    def manual_musicbrainz_search(self):
+        index = self.get_selected_playlist_index()
+        if index is None:
+            self.show_warning("No Selection", "Please select a playlist song before manual MusicBrainz search.")
+            return
+
+        title = simpledialog.askstring("MusicBrainz Search", "Enter Song Title:")
+        if not title or not title.strip():
+            return
+            
+        artist = simpledialog.askstring("MusicBrainz Search", "Enter Artist (optional):")
+        album = simpledialog.askstring("MusicBrainz Search", "Enter Album (optional):")
+        
+        song = {
+            "title": title.strip(),
+            "artist": artist.strip() if artist else "",
+            "album": album.strip() if album else ""
+        }
+        
+        if not MUSICBRAINZ_ENABLED or not self.musicbrainz_service:
+            self.show_warning("Disabled", "MusicBrainz integration is disabled.")
+            return
+        if self.musicbrainz_lookup_in_progress:
+            self.show_warning("In Progress", "MusicBrainz lookup is already in progress.")
+            return
+
+        self.update_status("Searching MusicBrainz (Manual)...")
+        if hasattr(self, "musicbrainz_button"):
+            self.safe_configure(self.musicbrainz_button, state="disabled")
+            
+        threading.Thread(target=self._musicbrainz_lookup_worker, args=(index, song), daemon=True).start()

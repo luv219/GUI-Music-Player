@@ -41,6 +41,20 @@ Seeking depends on the audio format and the `pygame` backend capabilities. Seeki
 **Check:**
 Verify that the `data/settings.json` file exists and is writable. The application needs write permissions in the `data` directory to save settings.
 
+## MusicBrainz lookup fails
+**Possible causes:**
+- No internet connection
+- MusicBrainz service temporarily unavailable
+- Rate limiting
+- Search terms too weak
+- Song has poor local metadata
+
+**Solutions:**
+- Try again after a short wait.
+- Use Manual MusicBrainz Search.
+- Add better title/artist information.
+- Check internet connection.
+
 ## EXE does not open
 **Solution:**
 Run the executable from a terminal to see error output:

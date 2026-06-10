@@ -46,6 +46,18 @@ Use the volume slider to adjust the audio level to your preference.
 - **Save Playlist**: Saves the current playlist so you can load it later.
 - **Load Playlist**: Loads a previously saved playlist.
 
+## MusicBrainz Metadata Lookup
+**Steps:**
+1. Add songs to playlist.
+2. Select a song.
+3. Click Lookup MusicBrainz or use Tools > Lookup Metadata on MusicBrainz.
+4. Wait for results.
+5. Select the best match.
+6. Click Apply Selected.
+7. Save playlist if you want to preserve MusicBrainz metadata.
+
+*Note: Original audio files are not changed.*
+
 ## Theme Switching
 - Go to **View > Toggle Theme** or use the **Toggle Theme** button to switch between Light and Dark modes.
 - Your theme preference is automatically saved.

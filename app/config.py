@@ -81,3 +81,19 @@ ERROR_EMPTY_PLAYLIST = "Playlist is empty. Please add songs first."
 ERROR_PLAYBACK_FAILED = "Playback failed. The file may be corrupted or unsupported."
 
 SUPPORTED_PLAYLIST_EXTENSIONS = [".json"]
+
+MUSICBRAINZ_ENABLED = True
+MUSICBRAINZ_APP_NAME = "PyTune Box"
+MUSICBRAINZ_APP_VERSION = "0.1.0-beta"
+MUSICBRAINZ_CONTACT = None
+MUSICBRAINZ_MAX_RESULTS = 10
+MUSICBRAINZ_RATE_LIMIT_SECONDS = 1.2
+MUSICBRAINZ_DEFAULT_INCLUDES = [
+    "artists",
+    "releases",
+    "release-groups"
+]
+
+ERROR_MUSICBRAINZ_NETWORK = "MusicBrainz lookup failed. Please check your internet connection."
+ERROR_MUSICBRAINZ_NO_RESULTS = "No MusicBrainz matches found."
+ERROR_MUSICBRAINZ_RATE_LIMIT = "MusicBrainz rate limit reached. Please wait and try again."

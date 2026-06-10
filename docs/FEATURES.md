@@ -32,6 +32,15 @@
 - Duration
 - Fallback handling
 
+## MusicBrainz Metadata Lookup
+- Search current/selected song on MusicBrainz
+- Candidate result dialog
+- Apply selected result
+- Store MusicBrainz recording ID
+- Store release date and country
+- Save enriched metadata in playlist JSON
+- Local/offline fallback
+
 ## Progress and Seek
 - Elapsed time
 - Total duration

@@ -15,11 +15,15 @@
 - Repeat modes (Off, One, All)
 - Keyboard shortcuts
 - Simple visualizer
+- MusicBrainz metadata lookup
 - PyInstaller packaging scripts
 - Comprehensive documentation
 
 ## Short-Term Improvements
 - Add album art display
+- Add AcoustID fingerprinting
+- Add Cover Art Archive integration
+- Add MusicBrainz bulk lookup queue
 - Add better seek support
 - Add one-file executable mode
 - Add installer

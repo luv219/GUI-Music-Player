@@ -69,20 +69,24 @@ class PlaylistManager:
             "artist": "Unknown Artist",
 
             "album": "Unknown Album",
-
             "duration_seconds": 0,
-
             "duration_text": "00:00",
-
+            "musicbrainz_recording_id": None,
+            "musicbrainz_artist": None,
+            "musicbrainz_album": None,
+            "musicbrainz_release_date": None,
+            "musicbrainz_country": None,
+            "metadata_source": "local",
         }
 
 
 
     def _build_display_name(self, song):
-
         """Build a playlist display string from song metadata."""
-
-        return f"{song['title']} - {song['artist']} [{song['duration_text']}]"
+        display = f"{song['title']} - {song['artist']} [{song['duration_text']}]"
+        if song.get("metadata_source") == "MusicBrainz":
+            display += " [MB]"
+        return display
 
 
 
@@ -117,14 +121,16 @@ class PlaylistManager:
 
 
         try:
-
             metadata = self.metadata_reader.read_metadata(resolved_path)
-
         except Exception:
-
             metadata = self._create_fallback_metadata(resolved_path)
 
-
+        metadata.setdefault("musicbrainz_recording_id", None)
+        metadata.setdefault("musicbrainz_artist", None)
+        metadata.setdefault("musicbrainz_album", None)
+        metadata.setdefault("musicbrainz_release_date", None)
+        metadata.setdefault("musicbrainz_country", None)
+        metadata.setdefault("metadata_source", "local")
 
         self.songs.append(metadata)
 
@@ -499,14 +505,26 @@ class PlaylistManager:
 
 
             try:
-
                 metadata = self.metadata_reader.read_metadata(song_file)
-
             except Exception:
-
                 metadata = self._create_fallback_metadata(song_file)
 
+            metadata.setdefault("musicbrainz_recording_id", None)
+            metadata.setdefault("musicbrainz_artist", None)
+            metadata.setdefault("musicbrainz_album", None)
+            metadata.setdefault("musicbrainz_release_date", None)
+            metadata.setdefault("musicbrainz_country", None)
+            metadata.setdefault("metadata_source", "local")
 
+            mb_fields = [
+                "title", "artist", "album", "duration_seconds", "duration_text",
+                "musicbrainz_recording_id", "musicbrainz_artist", "musicbrainz_album",
+                "musicbrainz_release_date", "musicbrainz_country", "metadata_source"
+            ]
+            if item.get("metadata_source") == "MusicBrainz":
+                for field in mb_fields:
+                    if field in item:
+                        metadata[field] = item[field]
 
             new_songs.append(metadata)
 
@@ -525,13 +543,36 @@ class PlaylistManager:
         return {
 
             "loaded": loaded,
-
             "skipped": skipped,
-
             "missing_files": missing_files,
-
             "playlist_name": playlist_name,
-
         }
+
+    def apply_musicbrainz_metadata(self, index, mb_result):
+        """Apply MusicBrainz metadata to the song at the given index."""
+        if index < 0 or index >= len(self.songs):
+            raise IndexError("Invalid playlist index.")
+
+        song = self.songs[index]
+        if mb_result.get("title"):
+            song["title"] = mb_result["title"]
+        if mb_result.get("artist"):
+            song["artist"] = mb_result["artist"]
+        if mb_result.get("album"):
+            song["album"] = mb_result["album"]
+            
+        if mb_result.get("duration_seconds", 0) > 0:
+            song["duration_seconds"] = mb_result["duration_seconds"]
+        if mb_result.get("duration_text"):
+            song["duration_text"] = mb_result["duration_text"]
+            
+        song["musicbrainz_recording_id"] = mb_result.get("musicbrainz_recording_id")
+        song["musicbrainz_artist"] = mb_result.get("artist")
+        song["musicbrainz_album"] = mb_result.get("album")
+        song["musicbrainz_release_date"] = mb_result.get("release_date")
+        song["musicbrainz_country"] = mb_result.get("country")
+        song["metadata_source"] = "MusicBrainz"
+        
+        return song
 
 
