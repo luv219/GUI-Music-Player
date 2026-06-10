@@ -82,3 +82,14 @@
 - PyInstaller folder build
 - Release ZIP script
 - Clean script
+
+## YouTube Streaming
+- Search or URL input
+- yt-dlp stream extraction
+- VLC network audio playback
+- Non-blocking background thread
+- Shared pause/resume/stop/volume controls
+- Now Playing update
+- Visualizer sync
+- Safe fallback if VLC unavailable
+

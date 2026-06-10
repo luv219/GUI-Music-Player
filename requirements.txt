@@ -2,3 +2,5 @@ pygame
 mutagen
 pyinstaller
 musicbrainzngs==0.7.1
+yt-dlp
+python-vlc

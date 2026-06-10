@@ -105,6 +105,12 @@ This removes `build/`, `dist/`, `PyTuneBox.spec`, and safe `__pycache__` folders
 - Code signing is recommended for serious public distribution.
 - Test the packaged app on another Windows machine before sharing widely.
 
+## Packaging Note for YouTube Streaming
+- `python-vlc` uses the VLC Media Player runtime installed on the user's host operating system.
+- The packaged `PyTuneBox.exe` does **not** bundle the VLC runtime. Users running the executable must have VLC Media Player (64-bit) installed separately on their Windows machine to use YouTube streaming.
+- If VLC is missing, the packaged app will still start and local file playback (using pygame) will work perfectly. YouTube streaming will show a clear warning message requesting VLC installation.
+- Do not attempt to bundle VLC runtime inside PyInstaller in this phase.
+
 ## Troubleshooting
 
 ### 1. PyInstaller not found

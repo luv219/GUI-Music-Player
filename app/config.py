@@ -97,3 +97,38 @@ MUSICBRAINZ_DEFAULT_INCLUDES = [
 ERROR_MUSICBRAINZ_NETWORK = "MusicBrainz lookup failed. Please check your internet connection."
 ERROR_MUSICBRAINZ_NO_RESULTS = "No MusicBrainz matches found."
 ERROR_MUSICBRAINZ_RATE_LIMIT = "MusicBrainz rate limit reached. Please wait and try again."
+
+YOUTUBE_STREAMING_ENABLED = True
+
+YOUTUBE_MAX_RESULTS = 5
+
+YOUTUBE_DEFAULT_SEARCH_PREFIX = "ytsearch"
+
+YOUTUBE_YTDLP_OPTIONS = {
+    "format": "bestaudio/best",
+    "default_search": "ytsearch",
+    "noplaylist": True,
+    "quiet": True,
+    "no_warnings": True,
+    "extract_flat": False
+}
+
+YOUTUBE_STREAM_STATUS_READY = "YouTube streaming ready"
+
+YOUTUBE_STREAM_STATUS_SEARCHING = "Searching YouTube..."
+
+YOUTUBE_STREAM_STATUS_BUFFERING = "Buffering YouTube audio..."
+
+YOUTUBE_STREAM_STATUS_PLAYING = "Streaming from YouTube"
+
+ERROR_YOUTUBE_EMPTY_QUERY = "Please enter a YouTube search term or URL."
+
+ERROR_YOUTUBE_NO_RESULTS = "No YouTube results found."
+
+ERROR_YOUTUBE_EXTRACTION_FAILED = "Could not extract YouTube audio stream."
+
+ERROR_YOUTUBE_NETWORK = "YouTube streaming failed. Please check your internet connection."
+
+ERROR_VLC_NOT_AVAILABLE = "VLC Media Player is required for YouTube streaming. Please install VLC 64-bit for your 64-bit Python."
+
+YOUTUBE_STREAM_SOURCE = "YouTube"

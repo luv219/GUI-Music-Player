@@ -73,6 +73,23 @@ Add an `.ico` file to the assets folder:
 `assets/icons/app.ico`
 Then rebuild the executable using the build script.
 
+## YouTube streaming does not work
+**Possible causes:**
+- VLC Media Player is not installed.
+- python-vlc cannot find VLC runtime.
+- Internet is disconnected.
+- yt-dlp extraction failed.
+- YouTube result is unavailable.
+- Firewall blocks VLC.
+
+**Solutions:**
+- Install VLC Media Player 64-bit on your system.
+- Restart the terminal or your IDE after VLC installation.
+- Run `pip install yt-dlp python-vlc` to ensure dependencies are installed.
+- Try a different search term or URL.
+- Test local file playback separately to isolate the issue.
+- Run the app from terminal to check any output/logs.
+
 ## Release ZIP not created
 Run the build script first:
 ```bat

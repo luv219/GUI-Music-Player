@@ -43,7 +43,25 @@ from app.visualizer import AudioVisualizer
 
 import threading
 from app.musicbrainz_service import MusicBrainzService
-from app.config import MUSICBRAINZ_ENABLED, ERROR_MUSICBRAINZ_NO_RESULTS, ERROR_MUSICBRAINZ_NETWORK
+from app.youtube_service import YouTubeService
+from app.stream_player import StreamPlayer
+from app.config import (
+    MUSICBRAINZ_ENABLED,
+    ERROR_MUSICBRAINZ_NO_RESULTS,
+    ERROR_MUSICBRAINZ_NETWORK,
+    YOUTUBE_STREAMING_ENABLED,
+    YOUTUBE_STREAM_STATUS_READY,
+    YOUTUBE_STREAM_STATUS_SEARCHING,
+    YOUTUBE_STREAM_STATUS_BUFFERING,
+    YOUTUBE_STREAM_STATUS_PLAYING,
+    ERROR_YOUTUBE_EMPTY_QUERY,
+    ERROR_YOUTUBE_NO_RESULTS,
+    ERROR_YOUTUBE_EXTRACTION_FAILED,
+    ERROR_YOUTUBE_NETWORK,
+    ERROR_VLC_NOT_AVAILABLE,
+    YOUTUBE_STREAM_SOURCE,
+    DEFAULT_VOLUME,
+)
 
 
 class PyTuneBoxApp:
@@ -88,6 +106,13 @@ class PyTuneBoxApp:
         else:
             self.musicbrainz_service = None
         self.musicbrainz_lookup_in_progress = False
+
+        self.youtube_service = YouTubeService()
+        self.stream_player = StreamPlayer(volume=saved_volume)
+        self.youtube_streaming_active = False
+        self.youtube_lookup_in_progress = False
+        self.current_youtube_stream_info = None
+        self.youtube_progress_job = None
 
         try:
             self.audio_player = AudioPlayer(volume=saved_volume / 100)
@@ -170,6 +195,9 @@ class PyTuneBoxApp:
         menubar.add_cascade(label="Tools", menu=tools_menu)
         tools_menu.add_command(label="Lookup Metadata on MusicBrainz", command=self.lookup_musicbrainz_for_selected_song)
         tools_menu.add_command(label="Manual MusicBrainz Search", command=self.manual_musicbrainz_search)
+        tools_menu.add_separator()
+        tools_menu.add_command(label="YouTube Search & Stream", command=self.on_youtube_stream_clicked)
+        tools_menu.add_command(label="Stop YouTube Stream", command=self.stop_youtube_stream)
 
     def _build_layout(self):
         """Build the full layout with all sections."""
@@ -182,6 +210,7 @@ class PyTuneBoxApp:
         self._build_now_playing(self.main_frame)
         self._build_playlist(self.main_frame)
         self._build_controls(self.main_frame)
+        self._build_youtube_stream(self.main_frame)
         self._build_visualizer(self.main_frame)
         self._build_status_bar(self.main_frame)
 
@@ -378,10 +407,48 @@ class PyTuneBoxApp:
         )
         self.volume_value_label.pack(side="left")
 
+    def _build_youtube_stream(self, parent):
+        """Build the YouTube stream search/playback section."""
+        yt_frame = ttk.LabelFrame(parent, text="YouTube Stream", padding=10)
+        yt_frame.grid(row=4, column=0, sticky="ew", pady=(0, 10))
+        yt_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(yt_frame, text="Search or URL:").grid(row=0, column=0, sticky="w", padx=(0, 8))
+        self.youtube_query_entry = ttk.Entry(yt_frame)
+        self.youtube_query_entry.grid(row=0, column=1, sticky="ew", padx=(0, 8))
+
+        btn_frame = ttk.Frame(yt_frame)
+        btn_frame.grid(row=0, column=2, sticky="e")
+
+        self.youtube_stream_button = ttk.Button(
+            btn_frame, text="Search & Stream", command=self.on_youtube_stream_clicked
+        )
+        self.youtube_stream_button.pack(side="left", padx=(0, 6))
+
+        self.youtube_stop_button = ttk.Button(
+            btn_frame, text="Stop Stream", command=self.stop_youtube_stream
+        )
+        self.youtube_stop_button.pack(side="left")
+
+        # Status row
+        status_row = ttk.Frame(yt_frame)
+        status_row.grid(row=1, column=0, columnspan=3, sticky="ew", pady=(6, 0))
+        status_row.columnconfigure(0, weight=1)
+
+        self.youtube_status_label = ttk.Label(
+            status_row, text=YOUTUBE_STREAM_STATUS_READY, font=("Segoe UI", 9, "italic")
+        )
+        self.youtube_status_label.grid(row=0, column=0, sticky="w")
+
+        note_label = ttk.Label(
+            status_row, text="Requires internet & VLC Player.", font=("Segoe UI", 8)
+        )
+        note_label.grid(row=0, column=1, sticky="e")
+
     def _build_visualizer(self, parent):
         """Build the visualizer section."""
         self.visualizer_frame = ttk.LabelFrame(parent, text="Visualizer", padding=10)
-        self.visualizer_frame.grid(row=4, column=0, sticky="ew", pady=(0, 10))
+        self.visualizer_frame.grid(row=5, column=0, sticky="ew", pady=(0, 10))
         self.visualizer_frame.columnconfigure(0, weight=1)
 
         self.visualizer = AudioVisualizer(
@@ -395,7 +462,7 @@ class PyTuneBoxApp:
     def _build_status_bar(self, parent):
         """Build the status bar at the bottom."""
         status_frame = ttk.Frame(parent)
-        status_frame.grid(row=5, column=0, sticky="ew")
+        status_frame.grid(row=6, column=0, sticky="ew")
 
         separator = ttk.Separator(status_frame, orient="horizontal")
         separator.pack(fill="x", pady=(0, 6))
@@ -1168,6 +1235,9 @@ class PyTuneBoxApp:
             return
 
         try:
+            if self.youtube_streaming_active:
+                self.stop_youtube_stream()
+
             self.stop_progress_updates()
             self.set_progress_value(0)
 
@@ -1260,6 +1330,23 @@ class PyTuneBoxApp:
 
     def on_play_pause(self):
         """Play, pause, or resume the current song."""
+        if self.youtube_streaming_active:
+            if not self.stream_player.is_available:
+                return
+            try:
+                self.stream_player.pause()
+                if self.stream_player.is_paused:
+                    self.update_status("YouTube stream paused")
+                    if hasattr(self, "visualizer"):
+                        self.visualizer.pause()
+                else:
+                    self.update_status("YouTube stream resumed")
+                    if hasattr(self, "visualizer"):
+                        self.visualizer.start()
+            except Exception as e:
+                self.show_error("YouTube Playback Error", str(e))
+            return
+
         if self.playlist_manager.is_empty():
             self.show_warning(
                 "No Songs",
@@ -1303,6 +1390,10 @@ class PyTuneBoxApp:
 
     def on_stop(self):
         """Stop playback."""
+        if self.youtube_streaming_active:
+            self.stop_youtube_stream()
+            return
+
         self.stop_progress_updates()
 
         try:
@@ -1522,6 +1613,8 @@ class PyTuneBoxApp:
         self.root.bind_all("<Control-S>", self._shortcut_save_playlist)
         self.root.bind_all("<Control-l>", self._shortcut_load_playlist)
         self.root.bind_all("<Control-L>", self._shortcut_load_playlist)
+        self.root.bind_all("<Control-y>", self._shortcut_focus_youtube)
+        self.root.bind_all("<Control-Y>", self._shortcut_focus_youtube)
 
     def _shortcut_play_pause(self, event):
         """Keyboard shortcut for play/pause."""
@@ -1579,6 +1672,12 @@ class PyTuneBoxApp:
         self.load_playlist()
         return "break"
 
+    def _shortcut_focus_youtube(self, event):
+        """Focus the YouTube query entry."""
+        if hasattr(self, "youtube_query_entry") and self.youtube_query_entry:
+            self.youtube_query_entry.focus_set()
+        return "break"
+
     def on_volume_change(self, value):
         """Update volume label, apply volume, and save setting."""
         volume = int(float(value))
@@ -1591,6 +1690,12 @@ class PyTuneBoxApp:
         except RuntimeError:
             self.audio_player.volume = max(0.0, min(1.0, volume / 100.0))
 
+        if hasattr(self, "stream_player") and self.stream_player and self.stream_player.is_available:
+            try:
+                self.stream_player.set_volume(volume)
+            except Exception:
+                pass
+
         if self._last_saved_volume != volume:
             self._last_saved_volume = volume
             try:
@@ -1602,6 +1707,7 @@ class PyTuneBoxApp:
         """Stop audio, save settings, and safely close the application."""
         try:
             self.stop_progress_updates()
+            self.stop_youtube_progress_updates()
             if hasattr(self, "visualizer"):
                 self.visualizer.stop()
 
@@ -1614,6 +1720,12 @@ class PyTuneBoxApp:
                 self.save_settings()
             except Exception:
                 pass
+
+            if hasattr(self, "stream_player") and self.stream_player:
+                try:
+                    self.stream_player.quit()
+                except Exception:
+                    pass
 
             self.audio_player.quit()
         except Exception:
@@ -1820,3 +1932,180 @@ class PyTuneBoxApp:
             self.safe_configure(self.musicbrainz_button, state="disabled")
             
         threading.Thread(target=self._musicbrainz_lookup_worker, args=(index, song), daemon=True).start()
+
+    # -------------------------------------------------------------------------
+    # YouTube streaming helpers
+    # -------------------------------------------------------------------------
+
+    def on_youtube_stream_clicked(self):
+        """Handle YouTube streaming start request."""
+        if not YOUTUBE_STREAMING_ENABLED:
+            self.show_warning("Disabled", "YouTube streaming integration is disabled.")
+            return
+
+        if not self.stream_player.is_available:
+            self.show_error("VLC Missing", ERROR_VLC_NOT_AVAILABLE)
+            return
+
+        if not hasattr(self, "youtube_query_entry") or not self.youtube_query_entry:
+            return
+
+        query = self.youtube_query_entry.get().strip()
+        if not query:
+            self.show_warning("Empty Search", ERROR_YOUTUBE_EMPTY_QUERY)
+            return
+
+        if self.youtube_lookup_in_progress:
+            self.show_warning("In Progress", "YouTube lookup is already in progress.")
+            return
+
+        # Stop local pygame playback before starting YouTube stream
+        self._stop_and_reset_playback()
+
+        self.update_status(YOUTUBE_STREAM_STATUS_SEARCHING)
+        if hasattr(self, "youtube_status_label") and self.youtube_status_label:
+            self.youtube_status_label.config(text=YOUTUBE_STREAM_STATUS_SEARCHING)
+
+        if hasattr(self, "youtube_stream_button") and self.youtube_stream_button:
+            self.safe_configure(self.youtube_stream_button, state="disabled")
+
+        threading.Thread(target=self._youtube_stream_worker, args=(query,), daemon=True).start()
+
+    def _youtube_stream_worker(self, query):
+        """Background thread worker to extract stream info from YouTube."""
+        self.youtube_lookup_in_progress = True
+        try:
+            stream_info = self.youtube_service.extract_stream(query)
+            self.root.after(0, self._youtube_stream_ready, stream_info)
+        except Exception as e:
+            self.root.after(0, self._youtube_stream_failed, str(e))
+        finally:
+            self.root.after(0, self._youtube_stream_cleanup)
+
+    def _youtube_stream_cleanup(self):
+        """Cleanup lookup state on the main thread."""
+        self.youtube_lookup_in_progress = False
+        if hasattr(self, "youtube_stream_button") and self.youtube_stream_button:
+            self.safe_configure(self.youtube_stream_button, state="normal")
+
+    def _youtube_stream_failed(self, error_message):
+        """Handle extraction failure on the main thread."""
+        self.youtube_streaming_active = False
+        self.stop_youtube_stream()
+        
+        self.show_error(
+            "YouTube Stream Error",
+            f"Could not start YouTube stream.\n\nDetails: {error_message}"
+        )
+        self.update_status("YouTube streaming failed")
+        if hasattr(self, "youtube_status_label") and self.youtube_status_label:
+            self.youtube_status_label.config(text="YouTube streaming failed")
+
+    def _youtube_stream_ready(self, stream_info):
+        """Handle successful stream extraction and start playback on the main thread."""
+        try:
+            self.stream_player.stop()
+            self.stream_player.load_stream(stream_info)
+            
+            # Apply current volume slider setting
+            volume = int(self.volume_scale.get()) if hasattr(self, "volume_scale") else DEFAULT_VOLUME
+            self.stream_player.set_volume(volume)
+            
+            # Start playing
+            self.stream_player.play()
+
+            self.youtube_streaming_active = True
+            self.current_youtube_stream_info = stream_info
+
+            # Update Now Playing labels
+            if hasattr(self, "song_title_label") and self.song_title_label:
+                self.song_title_label.config(text=stream_info["title"])
+            if hasattr(self, "artist_label") and self.artist_label:
+                self.artist_label.config(text=f"Uploader: {stream_info['uploader']}")
+            if hasattr(self, "album_label") and self.album_label:
+                self.album_label.config(text="Source: YouTube")
+            if hasattr(self, "duration_label") and self.duration_label:
+                self.duration_label.config(
+                    text=f"Duration: 00:00 / {stream_info['duration_text']}"
+                )
+
+            # Clear playlist selections visually
+            self.playlist_listbox.selection_clear(0, tk.END)
+
+            self.update_status(f"Streaming from YouTube: {stream_info['title']}")
+            if hasattr(self, "youtube_status_label") and self.youtube_status_label:
+                self.youtube_status_label.config(text=f"Streaming: {stream_info['title']}")
+
+            if hasattr(self, "visualizer"):
+                self.visualizer.start()
+
+            self.start_youtube_progress_updates()
+        except Exception as e:
+            self._youtube_stream_failed(str(e))
+
+    def stop_youtube_stream(self):
+        """Stop YouTube stream and reset associated UI states."""
+        self.stop_youtube_progress_updates()
+        if hasattr(self, "stream_player") and self.stream_player:
+            self.stream_player.stop()
+
+        self.youtube_streaming_active = False
+        self.current_youtube_stream_info = None
+
+        if hasattr(self, "visualizer"):
+            self.visualizer.stop()
+
+        self.set_progress_value(0)
+        self.reset_now_playing()
+
+        self.update_status("YouTube stream stopped")
+        if hasattr(self, "youtube_status_label") and self.youtube_status_label:
+            self.youtube_status_label.config(text="YouTube stream stopped")
+
+    def start_youtube_progress_updates(self):
+        """Start periodic YouTube progress bar updates."""
+        self.stop_youtube_progress_updates()
+        self.update_youtube_progress()
+
+    def stop_youtube_progress_updates(self):
+        """Stop periodic YouTube progress bar updates."""
+        if self.youtube_progress_job is not None:
+            self.root.after_cancel(self.youtube_progress_job)
+            self.youtube_progress_job = None
+
+    def update_youtube_progress(self):
+        """Update progress bar and labels for active YouTube streams."""
+        self.youtube_progress_job = None
+
+        if not self.youtube_streaming_active or not self.current_youtube_stream_info:
+            self.set_progress_value(0)
+            return
+
+        elapsed = self.stream_player.get_elapsed_seconds()
+        total_duration = self.current_youtube_stream_info.get("duration_seconds", 0)
+
+        if total_duration > 0:
+            elapsed = max(0, min(elapsed, total_duration))
+            self.set_progress_value(int((elapsed / total_duration) * 100))
+            total_text = self.current_youtube_stream_info.get("duration_text", "00:00")
+            elapsed_text = self.format_duration(elapsed)
+            if hasattr(self, "duration_label") and self.duration_label:
+                self.duration_label.config(text=f"Duration: {elapsed_text} / {total_text}")
+        else:
+            self.set_progress_value(0)
+            elapsed_text = self.format_duration(elapsed)
+            if hasattr(self, "duration_label") and self.duration_label:
+                self.duration_label.config(text=f"Duration: {elapsed_text} / Live/Unknown")
+
+        # Check if stream ended naturally
+        if self.stream_player.is_available:
+            try:
+                state = self.stream_player.get_state_name()
+                if "Ended" in state or "Error" in state:
+                    self.update_status("YouTube stream finished")
+                    self.stop_youtube_stream()
+                    return
+            except Exception:
+                pass
+
+        self.youtube_progress_job = self.root.after(1000, self.update_youtube_progress)

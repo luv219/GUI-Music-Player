@@ -73,6 +73,12 @@ The theme system uses dictionaries in `app/themes.py` to define color variables 
 ## Visualizer
 The current visualizer is a simulated Tkinter Canvas animation. It uses random bar heights synced to the play/pause state rather than actual frequency analysis, keeping the implementation lightweight and dependency-free.
 
+## YouTube Streaming Architecture
+- **YouTube Service (`app/youtube_service.py`)**: Utilizes `yt-dlp` to resolve queries (URLs or search terms) into playable stream formats, extracting relevant metadata (title, duration, thumbnail, uploader) without downloading anything to disk.
+- **Stream Player (`app/stream_player.py`)**: Wraps `python-vlc` for playing the network stream. If VLC is not present on the system, it degrades gracefully without raising startup crashes.
+- **Background Threading**: In `app/gui.py`, searches are kicked off in separate background threads, and updates to Tkinter widgets are coordinated on the main thread via `root.after()`.
+- **Playback Interlocking**: Mutual exclusion logic prevents both `pygame` (local files) and VLC (YouTube streams) from playing simultaneously. Playing a local file stops VLC, and starting a stream stops local playback.
+
 ## Packaging
 Refer to the [Packaging Guide](../PACKAGING_GUIDE.md) for details on building the PyInstaller Windows executable and release ZIP file.
 

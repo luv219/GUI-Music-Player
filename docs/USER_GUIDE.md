@@ -81,6 +81,16 @@ Use the volume slider to adjust the audio level to your preference.
 | Ctrl+Shift+O | Open Folder |
 | Ctrl+S | Save Playlist |
 | Ctrl+L | Load Playlist |
+## YouTube Audio Streaming
+**Steps:**
+1. Make sure you have installed VLC Media Player 64-bit on your Windows computer.
+2. In PyTune Box, find the **YouTube Stream** section at the bottom.
+3. Enter a YouTube search term (e.g. song name, artist name) or paste a direct YouTube video URL.
+4. Click **Search & Stream** or select **Tools > YouTube Search & Stream** from the menu.
+5. Wait for the extraction and buffering process (the status bar will show "Searching YouTube...").
+6. Once buffering completes, the stream will play. You can use the standard **Play/Pause**, **Stop**, and **Volume** controls normally.
+
+*Note: The app streams audio only and does not download or save files to your computer.*
 
 ## Visualizer
 The app features a simulated visualizer with animated bars that sync with the play, pause, and stop states, adding a dynamic visual element to your music playback.

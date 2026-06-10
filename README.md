@@ -26,6 +26,11 @@ The application is built entirely using Python, utilizing Tkinter for the GUI, p
 - User-selected MusicBrainz result application
 - MusicBrainz metadata saved in playlist JSON
 - Offline fallback to local metadata
+- YouTube search/URL audio streaming
+- Non-blocking stream extraction
+- VLC-based stream playback
+- Shared pause/stop/volume controls
+- Offline-safe fallback for local files
 - Metadata display
 - Duration display
 - Real-time progress tracking
@@ -62,6 +67,9 @@ Demo GIF/video will be stored in `assets/demo/`.
 | pygame | Audio playback backend |
 | mutagen | Audio metadata extraction |
 | musicbrainzngs 0.7.1 | MusicBrainz API integration |
+| yt-dlp | YouTube stream link extraction |
+| python-vlc | VLC playback wrapper |
+| VLC Media Player | External audio streaming runtime |
 | JSON | Settings and playlist storage |
 | PyInstaller | Windows executable packaging |
 | pytest | Automated testing |
@@ -149,6 +157,16 @@ PyTune Box can search MusicBrainz for improved song metadata. Select a song, the
 - Local metadata still works offline.
 
 See [docs/MUSICBRAINZ_INTEGRATION.md](docs/MUSICBRAINZ_INTEGRATION.md).
+
+## YouTube Audio Streaming
+PyTune Box can stream audio from a YouTube search term or URL. It uses `yt-dlp` to extract a playable stream URL and `python-vlc` / VLC to play the network stream. Extraction runs in a background thread so the Tkinter interface does not freeze.
+
+- **Requirements**: VLC Media Player 64-bit must be installed on your system.
+- **Internet Access**: Required for streaming.
+- **Local Playback**: Still works through `pygame` without any internet or VLC.
+- **No Downloading**: The application does not download or save YouTube audio files.
+
+See [docs/YOUTUBE_STREAMING.md](docs/YOUTUBE_STREAMING.md).
 
 ## Current Status
 **Version:** 0.1.0-beta

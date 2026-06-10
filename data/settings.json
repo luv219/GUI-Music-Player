@@ -1,6 +1,6 @@
 {
-    "theme": "light",
-    "volume": 70,
+    "theme": "dark",
+    "volume": 100,
     "last_playlist": null,
     "shuffle": false,
     "repeat_mode": "off"

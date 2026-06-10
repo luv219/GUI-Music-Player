@@ -16,10 +16,15 @@
 - Keyboard shortcuts
 - Simple visualizer
 - MusicBrainz metadata lookup
+- YouTube audio streaming (via yt-dlp & python-vlc)
 - PyInstaller packaging scripts
 - Comprehensive documentation
 
 ## Short-Term Improvements
+- Add YouTube search result picker
+- Add YouTube stream queue / history
+- Add streamed track as temporary playlist item
+- Add better buffering display
 - Add album art display
 - Add AcoustID fingerprinting
 - Add Cover Art Archive integration

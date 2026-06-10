@@ -28,6 +28,12 @@ Release date: To be finalized
 - MusicBrainz metadata fields in playlist items.
 - MusicBrainz metadata persistence in playlist JSON.
 - MusicBrainz integration documentation.
+- YouTube audio streaming with yt-dlp.
+- VLC-based stream playback with python-vlc.
+- YouTube stream GUI section.
+- Background-thread stream extraction.
+- Shared pause/stop/volume controls for YouTube streaming.
+- YouTube streaming documentation.
 
 ### Changed
 - Playlist display can mark MusicBrainz-enriched tracks with [MB].
@@ -42,3 +48,8 @@ Release date: To be finalized
 - No AcoustID fingerprint lookup.
 - No automatic bulk lookup.
 - No writing metadata back to audio files.
+- Requires installed VLC Media Player for YouTube streaming.
+- No YouTube result picker yet.
+- No stream playlist queue yet.
+- No downloading or caching.
+
